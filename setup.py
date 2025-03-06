@@ -24,5 +24,6 @@ setup(
      [console_scripts]
      semantic-tokens = speech_proc.semantic_tokens:main
      acoustic-tokens = speech_proc.acoustic_tokens:main
+     fundamental-frequency = speech_proc.pitch:main
     """
 )

@@ -64,7 +64,9 @@ class AudioDir:
         if not path:
             return False
         sample_rate, channels, precision, duration = self.get_info(name)
-        if expected_sample_rate < sample_rate:
+        if expected_sample_rate > sample_rate:
+            # this would require upsampling thats why we call it out
+            # TODO: allow this with extra option
             return False
         if channels != 1 or precision != 16:
             return False

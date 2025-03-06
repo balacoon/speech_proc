@@ -186,7 +186,7 @@ def main():
     extract_pitch(
         args.in_dir,
         args.out_dir,
-        ids=args.ids,
+        ids_path=args.ids,
         out_type=args.out_type,
         nproc=args.nproc,
         frame_rate=args.frame_rate,

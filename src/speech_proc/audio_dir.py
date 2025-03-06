@@ -8,6 +8,7 @@ import glob
 import os
 from typing import Optional
 
+import resampy
 import soundfile as sf
 
 AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg"]
@@ -63,7 +64,7 @@ class AudioDir:
         if not path:
             return False
         sample_rate, channels, precision, duration = self.get_info(name)
-        if expected_sample_rate != sample_rate:
+        if expected_sample_rate < sample_rate:
             return False
         if channels != 1 or precision != 16:
             return False
@@ -71,7 +72,13 @@ class AudioDir:
             return False
         return True
 
-    def read(self, name: str, dtype="int16"):
+    def read(self, name: str, dtype="int16", sample_rate: Optional[int] = None):
         path = self.get_path(name)
-        data, sample_rate = sf.read(path, dtype=dtype)
+        data, orig_sample_rate = sf.read(path, dtype=dtype)
+        if sample_rate and sample_rate != orig_sample_rate:
+            data = resampy.resample(
+                data, orig_sample_rate, sample_rate, filter="kaiser_best"
+            )
+        if not sample_rate:
+            sample_rate = orig_sample_rate
         return data, sample_rate

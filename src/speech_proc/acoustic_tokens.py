@@ -5,6 +5,7 @@ Extracts acoustic tokens from audio
 """
 
 import argparse
+import logging
 from typing import Optional
 
 import numpy as np
@@ -80,6 +81,7 @@ def extract_acoustic_tokens(
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     args = parse_args()
     extract_acoustic_tokens(
         args.in_dir,

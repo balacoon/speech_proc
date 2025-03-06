@@ -25,11 +25,15 @@ def create_dummy_audio(sample_rate=24000, num_files=3, duration=1.0):
     temp_dir = tempfile.mkdtemp()
 
     try:
-        t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-        sine_wave = 1.0 * np.sin(2 * np.pi * 440 * t)
+        t = np.linspace(
+            0, duration / 2, int(sample_rate * duration / 2), endpoint=False
+        )
+        sine_wave_a = 0.7 * np.sin(2 * np.pi * 120 * t)
+        sine_wave_b = 0.7 * np.sin(2 * np.pi * 240 * t)
+        sine_wave = np.concatenate((sine_wave_a, sine_wave_b))
         for i in range(num_files):
             file_path = os.path.join(temp_dir, f"dummy_{i}.wav")
-            samples = np.random.rand(int(sample_rate * duration))
+            samples = np.random.rand(int(sample_rate * duration)) * 0.3
             samples += sine_wave
             samples *= 32767
             samples = np.clip(samples, -32768, 32767)

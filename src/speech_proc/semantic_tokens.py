@@ -5,6 +5,7 @@ Extracts semantic tokens from audio
 """
 
 import argparse
+import logging
 from typing import Optional
 
 import numpy as np
@@ -76,6 +77,7 @@ def extract_semantic_tokens(
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     args = parse_args()
     extract_semantic_tokens(
         args.in_dir,

@@ -124,14 +124,20 @@ class PitchExtractor:
     def _convert_f0(self, f0: np.ndarray) -> np.ndarray:
         """Converts f0 values based on the selected output type."""
         if self._out_type == "linear":
-            return f0
+            return f0.astype(np.float16)
         elif self._out_type == "log":
-            return np.where(f0 > 0, np.log(f0), 0)
+            mask = f0 > 0
+            f0[mask] = np.log(f0[mask])
+            return f0.astype(np.float16)
         elif self._out_type == "relative_semitones":
             ref_freq = 440.0  # A4 reference frequency
-            semitones = np.where(f0 > 0, 12 * np.log2(f0 / ref_freq) + 69, 0)
+            semitones = np.zeros_like(f0)
+            mask = f0 > 0
+            semitones[mask] = 12 * np.log2(f0[mask] / ref_freq) + 69
             median_semitone = np.median(semitones[semitones > 0])
-            return np.where(f0 > 0, np.round(semitones - median_semitone), 0)
+            return np.where(
+                semitones > 0, np.round(semitones - median_semitone), 0
+            ).astype(np.int16)
         else:
             raise ValueError(f"Unsupported output type: {self._out_type}")
 
@@ -143,7 +149,19 @@ class PitchExtractor:
 
         # Save to .npz file
         out_path = os.path.join(self._out_dir, f"{name}.npz")
-        np.savez(out_path, pitch=f0)
+        # Check if archive already exists
+        if os.path.exists(out_path):
+            existing_data = np.load(out_path, allow_pickle=True)
+            archive_dict = dict(existing_data)  # Convert to a mutable dictionary
+            existing_data.close()  # Close the file after loading
+        else:
+            archive_dict = {}  # Create a new dictionary if file doesn't exist
+
+        # Add or update the 'pitch' array
+        archive_dict["pitch"] = f0
+
+        # Save the updated archive
+        np.savez(out_path, **archive_dict)
 
 
 def run_extraction(args):

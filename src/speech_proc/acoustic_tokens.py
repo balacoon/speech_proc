@@ -42,6 +42,7 @@ class AcousticTokensExtractor(NN):
             names,
             data_len,
             "acoustic_tokens",
+            "int16",
         )
 
     @staticmethod

@@ -38,6 +38,7 @@ class SemanticTokensExtractor(NN):
             names,
             data_len,
             "semantic_tokens",
+            "int16",
         )
 
     @staticmethod

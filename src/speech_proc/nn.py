@@ -150,7 +150,12 @@ class NN:
         return self._model(data, data_len)
 
     def save_data(
-        self, output: np.ndarray, names: list[str], data_len: list[int], out_stream: str
+        self,
+        output: np.ndarray,
+        names: list[str],
+        data_len: list[int],
+        out_stream: str,
+        dtype: str,
     ):
         """
         Stores data in npz directory.
@@ -163,6 +168,7 @@ class NN:
             names (list[str]): List of file names (without extension).
             data_len (list[int]): List of data lengths corresponding to each entry.
             out_stream (str): The key under which to store the data.
+            dtype (str): which type to cast data to
         """
         assert output.shape[0] == len(names)
         assert len(names) == len(data_len)
@@ -188,7 +194,7 @@ class NN:
                 archive = {}
 
             # Update or add the new stream
-            archive[out_stream] = arr
+            archive[out_stream] = arr.astype(dtype)
 
             # Save back to npz
             np.savez(out_path, **archive)

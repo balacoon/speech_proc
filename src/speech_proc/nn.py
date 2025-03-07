@@ -135,7 +135,7 @@ class NN:
         """
         Loads audio data. Pads and packs it into batches.
         """
-        data = [self._in_audio_dir.read(x)[0] for x in names]
+        data = [self._in_audio_dir.read(x, sample_rate=self._sample_rate)[0] for x in names]
         data_len = [x.shape[0] for x in data]
         padded_data = [self.pad_samples(x, max(data_len)) for x in data]
         # convert to torch tensors

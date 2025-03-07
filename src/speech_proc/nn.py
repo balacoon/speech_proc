@@ -12,8 +12,11 @@ import os
 import numpy as np
 import torch
 import tqdm
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 from speech_proc.audio_dir import AudioDir
+
 
 
 def append_arguments(parser: argparse.ArgumentParser):
@@ -135,7 +138,8 @@ class NN:
         """
         Loads audio data. Pads and packs it into batches.
         """
-        data = [self._in_audio_dir.read(x, sample_rate=self._sample_rate)[0] for x in names]
+        with ThreadPoolExecutor() as executor:
+            data = list(executor.map(lambda x: self._in_audio_dir.read(x, sample_rate=self._sample_rate)[0], names))
         data_len = [x.shape[0] for x in data]
         padded_data = [self.pad_samples(x, max(data_len)) for x in data]
         # convert to torch tensors

@@ -79,7 +79,7 @@ class AudioDir:
         data, orig_sample_rate = sf.read(path, dtype=dtype)
         if sample_rate and sample_rate != orig_sample_rate:
             data = resampy.resample(
-                data, orig_sample_rate, sample_rate, filter="kaiser_best"
+                data, orig_sample_rate, sample_rate, filter="kaiser_fast"
             )
         if not sample_rate:
             sample_rate = orig_sample_rate

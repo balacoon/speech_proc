@@ -1,4 +1,4 @@
-torch==2.6.0
-tqdm==4.67.1
-numpy==2.1.3
-resampy
+tqdm
+soundfile
+resampy==0.4.3
+allophant==1.0.0

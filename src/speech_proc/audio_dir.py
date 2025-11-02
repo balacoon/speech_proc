@@ -10,6 +10,7 @@ from typing import Optional
 
 import resampy
 import soundfile as sf
+import tqdm
 
 AUDIO_EXTENSIONS = ["wav", "mp3", "flac", "ogg"]
 
@@ -18,11 +19,32 @@ class AudioDir:
     def __init__(self, path: str):
         self._path = path
 
-    def get_ids(self) -> list[str]:
+    def get_ids(
+        self,
+        to_sort: bool = False,
+        expected_sample_rate: Optional[int] = None,
+        max_dur: Optional[float] = None,
+    ) -> list[str]:
         ids = []
-        for path in glob.glob(os.path.join(self._path, "*")):
-            if any(path.endswith(x) for x in AUDIO_EXTENSIONS):
-                ids.append(os.path.splitext(os.path.basename(path))[0])
+        durations = []
+        for path in tqdm.tqdm(
+            glob.glob(os.path.join(self._path, "*")), desc="Getting audio IDs"
+        ):
+            if not any(path.endswith(x) for x in AUDIO_EXTENSIONS):
+                continue
+            if to_sort:
+                info = self.get_info(path)
+                assert expected_sample_rate is not None
+                if not self.is_valid_info(info, expected_sample_rate, max_dur):
+                    continue
+                durations.append(info[-1])
+            ids.append(os.path.splitext(os.path.basename(path))[0])
+        if to_sort:
+            # Use zip to pair ids and durations, then sort by duration and extract ids
+            sorted_pairs = sorted(
+                zip(ids, durations), key=lambda pair: pair[1], reverse=True
+            )
+            ids = [pair[0] for pair in sorted_pairs]
         return ids
 
     def get_path(self, name: str) -> str:
@@ -37,7 +59,10 @@ class AudioDir:
         Reads meta info of an audio file, returning
         sample_rate, number of channels, precision, and duration.
         """
-        path = self.get_path(name)
+        if os.path.isfile(name):
+            path = name
+        else:
+            path = self.get_path(name)
 
         try:
             info = sf.info(path)
@@ -63,7 +88,12 @@ class AudioDir:
         path = self.get_path(name)
         if not path:
             return False
-        sample_rate, channels, precision, duration = self.get_info(name)
+        return self.is_valid_info(self.get_info(name), expected_sample_rate, max_dur)
+
+    def is_valid_info(
+        self, info, expected_sample_rate: int, max_dur: Optional[float] = None
+    ) -> bool:
+        sample_rate, channels, precision, duration = info
         if expected_sample_rate > sample_rate:
             # this would require upsampling thats why we call it out
             # TODO: allow this with extra option
@@ -81,6 +111,4 @@ class AudioDir:
             data = resampy.resample(
                 data, orig_sample_rate, sample_rate, filter="kaiser_fast"
             )
-        if not sample_rate:
-            sample_rate = orig_sample_rate
-        return data, sample_rate
+        return data, sample_rate or orig_sample_rate

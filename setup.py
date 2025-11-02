@@ -22,8 +22,7 @@ setup(
     # declare your scripts
     entry_points="""\
      [console_scripts]
-     semantic-tokens = speech_proc.semantic_tokens:main
-     acoustic-tokens = speech_proc.acoustic_tokens:main
+     phoneme-recognizer = speech_proc.phoneme_recognizer:main
      fundamental-frequency = speech_proc.pitch:main
     """
 )

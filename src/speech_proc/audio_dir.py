@@ -34,7 +34,6 @@ class AudioDir:
                 continue
             if to_sort:
                 info = self.get_info(path)
-                assert expected_sample_rate is not None
                 if not self.is_valid_info(info, expected_sample_rate, max_dur):
                     continue
                 durations.append(info[-1])
@@ -83,7 +82,7 @@ class AudioDir:
         return duration
 
     def is_valid(
-        self, name: str, expected_sample_rate: int, max_dur: Optional[float] = None
+        self, name: str, expected_sample_rate: Optional[int] = None, max_dur: Optional[float] = None
     ) -> bool:
         path = self.get_path(name)
         if not path:
@@ -91,10 +90,10 @@ class AudioDir:
         return self.is_valid_info(self.get_info(name), expected_sample_rate, max_dur)
 
     def is_valid_info(
-        self, info, expected_sample_rate: int, max_dur: Optional[float] = None
+        self, info, expected_sample_rate: Optional[int] = None, max_dur: Optional[float] = None
     ) -> bool:
         sample_rate, channels, precision, duration = info
-        if expected_sample_rate > sample_rate:
+        if expected_sample_rate and expected_sample_rate > sample_rate:
             # this would require upsampling thats why we call it out
             # TODO: allow this with extra option
             return False

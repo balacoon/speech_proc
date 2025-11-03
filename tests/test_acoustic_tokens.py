@@ -13,17 +13,20 @@ if TEST_DIR not in sys.path:
 import numpy as np
 from test_utils import create_dummy_audio  # Now directly importable
 
-from speech_proc.acoustic_tokens import extract_acoustic_tokens
+from speech_proc.nano_acoustic_tokens import extract_tokens
 
 
-def test_semantic_tokens():
+def test_nano_acoustic_tokens():
     with create_dummy_audio(
-        sample_rate=24000, num_files=20, duration=10.0
+        sample_rate=22050, num_files=20, duration=10.0
     ) as dummy_audio_dir:
         out_dir = "tmp_acoustic_tokens"
-        extract_acoustic_tokens(
-            dummy_audio_dir,
-            out_dir,
+        extract_tokens(
+            audio_dir_path=dummy_audio_dir,
+            output_dir=out_dir,
+            batch_size=8,
+            max_dur=15.0,
+            device="cpu",
         )
         paths = list(glob.glob(os.path.join(out_dir, "*.npz")))
         assert len(paths) == 20
@@ -31,8 +34,8 @@ def test_semantic_tokens():
             archive = np.load(p)
             assert "acoustic_tokens" in archive
             arr = archive["acoustic_tokens"]
-            assert arr.shape == (501, 4)  # 50 per second, minus one for win_size
+            assert arr.shape == (8, 216)
             assert np.all(arr >= 0)
-            assert np.all(arr < 2048)
+            assert np.all(arr < 2025)
             assert not np.all(arr == 0)
         shutil.rmtree(out_dir)

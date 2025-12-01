@@ -131,41 +131,29 @@ def extract_features(
         with torch.no_grad():
             model_outputs = model.predict(batch.to(device), composition_matrix)
 
-        # Process outputs for each audio file in the batch
         for i, audio_id in enumerate(batch_ids):
             output_features = {}
+            logits = model_outputs.outputs["phoneme"][:, i, :]  # frames x dim
+            # Get actual length for this sample
+            actual_length_samples = batch_lengths[i]
+            actual_length_frames = math.floor(
+                actual_length_samples / model_sample_rate / FRAME_DUR
+            )
+            logits = logits[:actual_length_frames]  # Trim to actual length
+            probs = torch.softmax(logits, dim=-1).squeeze().cpu().numpy()
 
-            # Extract features for this sample
-            for feature_name in supported_features:
+            # Find top 8 probabilities and their indices for each frame
+            # probs has shape (T, vocab_size)
+            top_k = 8
+            # Get indices of top 8 values per frame (sorted from highest to lowest)
+            top_indices = np.argsort(probs, axis=-1)[:, -top_k:][:, ::-1]  # T x 8
+            # Get the corresponding probabilities
+            top_probs = np.take_along_axis(probs, top_indices, axis=-1)  # T x 8
 
-                # skip some features, they are not informative, duplicates
-                if feature_name in ["phone", "tone"]:
-                    continue
+            # Store in output features as half precision to reduce file size
+            output_features["phoneme_probs"] = top_probs.astype(np.float16)  # T x 8
+            output_features["phoneme_indices"] = top_indices.astype(np.int16)  # T x 8
 
-                # Get output for this feature (shape: frames x batch x dim)
-                feature_output = model_outputs.outputs[feature_name][
-                    :, i, :
-                ]  # frames x dim
-
-                # Get actual length for this sample
-                actual_length_samples = batch_lengths[i]
-                actual_length_frames = math.floor(
-                    actual_length_samples / model_sample_rate / FRAME_DUR
-                )
-                feature_output = feature_output[
-                    :actual_length_frames
-                ]  # Trim to actual length
-                feature_values = (
-                    feature_output.argmax(dim=-1)
-                    .squeeze()
-                    .cpu()
-                    .numpy()
-                    .astype(np.int32)
-                )
-
-                output_features[feature_name] = feature_values
-
-            # Save to npz file
             output_path = os.path.join(output_dir, f"{audio_id}.npz")
             np.savez(output_path, **output_features)
 

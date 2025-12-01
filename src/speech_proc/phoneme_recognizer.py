@@ -132,7 +132,6 @@ def extract_features(
             model_outputs = model.predict(batch.to(device), composition_matrix)
 
         for i, audio_id in enumerate(batch_ids):
-            output_features = {}
             logits = model_outputs.outputs["phoneme"][:, i, :]  # frames x dim
             # Get actual length for this sample
             actual_length_samples = batch_lengths[i]
@@ -150,12 +149,22 @@ def extract_features(
             # Get the corresponding probabilities
             top_probs = np.take_along_axis(probs, top_indices, axis=-1)  # T x 8
 
-            # Store in output features as half precision to reduce file size
-            output_features["phoneme_probs"] = top_probs.astype(np.float16)  # T x 8
-            output_features["phoneme_indices"] = top_indices.astype(np.int16)  # T x 8
-
             output_path = os.path.join(output_dir, f"{audio_id}.npz")
-            np.savez(output_path, **output_features)
+
+            # Check if archive already exists
+            if os.path.exists(output_path):
+                existing_data = np.load(output_path, allow_pickle=True)
+                archive_dict = dict(existing_data)  # Convert to a mutable dictionary
+                existing_data.close()  # Close the file after loading
+            else:
+                archive_dict = {}  # Create a new dictionary if file doesn't exist
+
+            # Add or update the 'tokens' array
+            archive_dict["phoneme_probs"] = top_probs.astype(np.float16)  # T x 8
+            archive_dict["phoneme_indices"] = top_indices.astype(np.int16)  # T x 8
+
+            # Save the updated archive
+            np.savez(output_path, **archive_dict)
 
     print("Feature extraction complete!")
 

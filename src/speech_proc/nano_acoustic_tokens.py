@@ -118,7 +118,20 @@ def extract_tokens(
 
             # Save to npz file
             output_path = os.path.join(output_dir, f"{audio_id}.npz")
-            np.savez(output_path, acoustic_tokens=tokens)
+
+            # Check if archive already exists
+            if os.path.exists(output_path):
+                existing_data = np.load(output_path, allow_pickle=True)
+                archive_dict = dict(existing_data)  # Convert to a mutable dictionary
+                existing_data.close()  # Close the file after loading
+            else:
+                archive_dict = {}  # Create a new dictionary if file doesn't exist
+
+            # Add or update the 'tokens' array
+            archive_dict["acoustic_tokens"] = tokens
+
+            # Save the updated archive
+            np.savez(output_path, **archive_dict)
 
     print("Acoustic token extraction complete!")
 

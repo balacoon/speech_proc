@@ -61,6 +61,18 @@ def parse_args():
         default=cpu_count(),
         help="Number of parallel processes to use",
     )
+    ap.add_argument(
+        "--max-dur",
+        type=float,
+        default=None,
+        help="Maximum duration in seconds, files longer than this are skipped",
+    )
+    ap.add_argument(
+        "--min-dur",
+        type=float,
+        default=None,
+        help="Minimum duration in seconds, files shorter than this are skipped",
+    )
     return ap.parse_args()
 
 
@@ -174,6 +186,8 @@ def run_extraction(args):
 def extract_pitch(
     in_dir: str,
     out_dir: str,
+    min_dur: float = None,
+    max_dur: float = None,
     ids_path: str = None,
     out_type: str = MODES[-1],
     nproc: int = cpu_count(),
@@ -190,7 +204,7 @@ def extract_pitch(
         with open(ids_path, "r", encoding="utf-8") as fp:
             ids = [x.strip().split()[0] for x in fp.readlines()]
     else:
-        ids = audio_dir.get_ids()
+        ids = audio_dir.get_ids(min_dur=min_dur, max_dur=max_dur)
     id_chunks = np.array_split(ids, nproc)
 
     with Pool(nproc) as pool:
@@ -204,6 +218,8 @@ def main():
     extract_pitch(
         args.in_dir,
         args.out_dir,
+        min_dur=args.min_dur,
+        max_dur=args.max_dur,
         ids_path=args.ids,
         out_type=args.out_type,
         nproc=args.nproc,

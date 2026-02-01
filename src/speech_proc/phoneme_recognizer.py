@@ -28,6 +28,7 @@ def extract_features(
     output_dir: str,
     language: str,
     batch_size: int = 16,
+    min_dur: Optional[float] = None,
     max_dur: Optional[float] = None,
     device: str = "cpu",
     model_name: str = "kgnlp/allophant",
@@ -69,7 +70,7 @@ def extract_features(
     # Initialize audio directory
     audio_dir = AudioDir(audio_dir_path)
     audio_ids = audio_dir.get_ids(
-        to_sort=True, expected_sample_rate=model_sample_rate, max_dur=max_dur
+        to_sort=True, expected_sample_rate=model_sample_rate, min_dur=min_dur, max_dur=max_dur
     )
     print(f"Found {len(audio_ids)} audio files")
 
@@ -195,10 +196,15 @@ def main():
     )
     parser.add_argument(
         "--max-dur",
-        "-m",
         type=float,
         default=None,
         help="Maximum duration in seconds, files longer than this are skipped",
+    )
+    parser.add_argument(
+        "--min-dur",
+        type=float,
+        default=None,
+        help="Minimum duration in seconds, files shorter than this are skipped",
     )
     parser.add_argument(
         "--device",
@@ -222,6 +228,7 @@ def main():
         output_dir=args.output_dir,
         language=args.language,
         batch_size=args.batch_size,
+        min_dur=args.min_dur,
         max_dur=args.max_dur,
         device=args.device,
         model_name=args.model,

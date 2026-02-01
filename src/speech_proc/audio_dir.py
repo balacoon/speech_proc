@@ -23,21 +23,28 @@ class AudioDir:
         self,
         to_sort: bool = False,
         expected_sample_rate: Optional[int] = None,
+        min_dur: Optional[float] = None,
         max_dur: Optional[float] = None,
+        orig_ids: Optional[list[str]] = None,
     ) -> list[str]:
         ids = []
         durations = []
-        for path in tqdm.tqdm(
-            glob.glob(os.path.join(self._path, "*")), desc="Getting audio IDs"
-        ):
+
+        if orig_ids is None:
+            paths = list(glob.glob(os.path.join(self._path, "*")))
+            orig_ids = [os.path.splitext(os.path.basename(path))[0] for path in paths]
+        else:
+            paths = [os.path.join(self._path, x + ".wav") for x in orig_ids]
+
+        for path, name in tqdm.tqdm(zip(paths, orig_ids), desc="Getting audio IDs"):
             if not any(path.endswith(x) for x in AUDIO_EXTENSIONS):
                 continue
             if to_sort:
                 info = self.get_info(path)
-                if not self.is_valid_info(info, expected_sample_rate, max_dur):
+                if not self.is_valid_info(info, expected_sample_rate, min_dur, max_dur):
                     continue
                 durations.append(info[-1])
-            ids.append(os.path.splitext(os.path.basename(path))[0])
+            ids.append(name)
         if to_sort:
             # Use zip to pair ids and durations, then sort by duration and extract ids
             sorted_pairs = sorted(
@@ -82,15 +89,15 @@ class AudioDir:
         return duration
 
     def is_valid(
-        self, name: str, expected_sample_rate: Optional[int] = None, max_dur: Optional[float] = None
+        self, name: str, expected_sample_rate: Optional[int] = None, min_dur: Optional[float] = None, max_dur: Optional[float] = None
     ) -> bool:
         path = self.get_path(name)
         if not path:
             return False
-        return self.is_valid_info(self.get_info(name), expected_sample_rate, max_dur)
+        return self.is_valid_info(self.get_info(name), expected_sample_rate, min_dur, max_dur)
 
     def is_valid_info(
-        self, info, expected_sample_rate: Optional[int] = None, max_dur: Optional[float] = None
+        self, info, expected_sample_rate: Optional[int] = None, min_dur: Optional[float] = None, max_dur: Optional[float] = None
     ) -> bool:
         sample_rate, channels, precision, duration = info
         if expected_sample_rate and expected_sample_rate > sample_rate:
@@ -100,6 +107,8 @@ class AudioDir:
         if channels != 1 or precision != 16:
             return False
         if max_dur and duration > max_dur:
+            return False
+        if min_dur and duration < min_dur:
             return False
         return True
 

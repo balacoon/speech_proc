@@ -19,6 +19,7 @@ def extract_tokens(
     audio_dir_path: str,
     output_dir: str,
     batch_size: int = 16,
+    min_dur: Optional[float] = None,
     max_dur: Optional[float] = None,
     device: str = "cpu",
     model_name: str = "nvidia/nemo-nano-codec-22khz-1.89kbps-21.5fps",
@@ -30,6 +31,7 @@ def extract_tokens(
         audio_dir_path: Path to directory containing audio files
         output_dir: Path to directory where npz files will be saved
         batch_size: Number of audio files to process at once
+        min_dur: Minimum duration in seconds, files shorter than this are skipped
         max_dur: Maximum duration in seconds, files longer than this are skipped
         device: Device to run model on ('cpu' or 'cuda')
         model_name: NeMo model name or path to checkpoint
@@ -51,6 +53,7 @@ def extract_tokens(
         # allow any sample rate starting from 16000Hz
         to_sort=True,
         expected_sample_rate=None,
+        min_dur=min_dur,
         max_dur=max_dur,
     )
     print(f"Found {len(audio_ids)} audio files")
@@ -155,10 +158,15 @@ def main():
     )
     parser.add_argument(
         "--max-dur",
-        "-m",
         type=float,
         default=None,
         help="Maximum duration in seconds, files longer than this are skipped",
+    )
+    parser.add_argument(
+        "--min-dur",
+        type=float,
+        default=None,
+        help="Minimum duration in seconds, files shorter than this are skipped",
     )
     parser.add_argument(
         "--device",
@@ -181,6 +189,7 @@ def main():
         audio_dir_path=args.audio_dir,
         output_dir=args.output_dir,
         batch_size=args.batch_size,
+        min_dur=args.min_dur,
         max_dur=args.max_dur,
         device=args.device,
         model_name=args.model,

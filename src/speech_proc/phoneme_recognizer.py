@@ -139,8 +139,11 @@ def extract_features(
             actual_length_frames = math.floor(
                 actual_length_samples / model_sample_rate / FRAME_DUR
             )
+            if actual_length_frames < 2:
+                print(f"Skipping {audio_id}: too few frames ({actual_length_frames})")
+                continue
             logits = logits[:actual_length_frames]  # Trim to actual length
-            probs = torch.softmax(logits, dim=-1).squeeze().cpu().numpy()
+            probs = torch.softmax(logits, dim=-1).cpu().numpy()  # T x vocab_size
 
             # Find top 8 probabilities and their indices for each frame
             # probs has shape (T, vocab_size)

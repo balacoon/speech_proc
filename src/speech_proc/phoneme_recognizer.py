@@ -26,7 +26,6 @@ FRAME_DUR = 0.02  # 20ms
 def extract_features(
     audio_dir_path: str,
     output_dir: str,
-    language: str,
     batch_size: int = 16,
     min_dur: Optional[float] = None,
     max_dur: Optional[float] = None,
@@ -39,7 +38,6 @@ def extract_features(
     Args:
         audio_dir_path: Path to directory containing audio files
         output_dir: Path to directory where npz files will be saved
-        language: Language code for deriving phoneme inventory (e.g., 'en', 'es', 'de')
         batch_size: Number of audio files to process at once
         max_dur: Maximum duration in seconds, files longer than this are skipped
         device: Device to run model on ('cpu' or 'cuda')
@@ -53,14 +51,14 @@ def extract_features(
     model, attribute_indexer = Estimator.restore(model_name, device=device)
     model_sample_rate = model.sample_rate
 
-    # Get phoneme inventory for the language
-    print(f"Loading phoneme inventory for language: {language}")
-    inventory = attribute_indexer.phoneme_inventory(language)
+    # Get "universal" phoneme inventory.
+    # we use all supported languages from prod dataset.
+    # we omit missing zh/ja/ko, we expect those to be implicitely mapped to shared phonemeset.
+    # phoneme recognizer is ultimately language-independent.
+    languages = ["en", "de", "fr", "ru", "uk", "nl", "es", "it", "pl", "pt", "tr"]
+    print(f"Loading phoneme inventory for language: {languages}")
+    inventory = attribute_indexer.phoneme_inventory(languages)
     print(f"Inventory contains {len(inventory)} phonemes")
-
-    # Get feature names supported by the model
-    supported_features = attribute_indexer.feature_names
-    print(f"Supported features: {supported_features}")
 
     # Create composition feature matrix for the inventory
     composition_matrix = attribute_indexer.composition_feature_matrix(inventory).to(
@@ -147,11 +145,11 @@ def extract_features(
 
             # Find top 8 probabilities and their indices for each frame
             # probs has shape (T, vocab_size)
-            top_k = 8
-            # Get indices of top 8 values per frame (sorted from highest to lowest)
-            top_indices = np.argsort(probs, axis=-1)[:, -top_k:][:, ::-1]  # T x 8
+            top_k = 4
+            # Get indices of top_k values per frame (sorted from highest to lowest)
+            top_indices = np.argsort(probs, axis=-1)[:, -top_k:][:, ::-1]  # T x topk
             # Get the corresponding probabilities
-            top_probs = np.take_along_axis(probs, top_indices, axis=-1)  # T x 8
+            top_probs = np.take_along_axis(probs, top_indices, axis=-1)  # T x topk
 
             output_path = os.path.join(output_dir, f"{audio_id}.npz")
 
@@ -164,8 +162,8 @@ def extract_features(
                 archive_dict = {}  # Create a new dictionary if file doesn't exist
 
             # Add or update the 'tokens' array
-            archive_dict["phoneme_probs"] = top_probs.astype(np.float16)  # T x 8
-            archive_dict["phoneme_indices"] = top_indices.astype(np.int16)  # T x 8
+            archive_dict["phoneme_probs"] = top_probs.astype(np.float16)  # T x topk
+            archive_dict["phoneme_indices"] = top_indices.astype(np.int16)  # T x topk
 
             # Save the updated archive
             np.savez(output_path, **archive_dict)
@@ -184,17 +182,10 @@ def main():
         "output_dir", type=str, help="Path to directory where npz files will be saved"
     )
     parser.add_argument(
-        "--language",
-        "-l",
-        type=str,
-        required=True,
-        help="Language code for deriving phoneme inventory (e.g., 'en', 'es', 'de')",
-    )
-    parser.add_argument(
         "--batch-size",
         "-b",
         type=int,
-        default=16,
+        default=4,
         help="Number of audio files to process at once (default: 16)",
     )
     parser.add_argument(

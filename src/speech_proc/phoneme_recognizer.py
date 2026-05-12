@@ -220,7 +220,6 @@ def main():
     extract_features(
         audio_dir_path=args.audio_dir,
         output_dir=args.output_dir,
-        language=args.language,
         batch_size=args.batch_size,
         min_dur=args.min_dur,
         max_dur=args.max_dur,

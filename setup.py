@@ -26,5 +26,6 @@ setup(
      nano-acoustic-tokens = speech_proc.nano_acoustic_tokens:main
      qwen3-acoustic-tokens = speech_proc.qwen3_acoustic_tokens:main
      fundamental-frequency = speech_proc.pitch:main
+     speaker-embedding = speech_proc.spkr_emb:main
     """
 )
